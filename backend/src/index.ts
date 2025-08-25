@@ -1,12 +1,12 @@
+import cors from "cors";
 import "dotenv/config";
 import express from "express";
-import { Env } from "./config/env.config.js";
-import cors from "cors";
-import { HTTPSTATUS } from "./config/http.config.js";
-import { errorHandler } from "./middlewares/errorHandler.middleware.js";
-import { BadRequestException } from "./utils/app-error.js";
-import { asyncHandler } from "./middlewares/asyncHandler.middleware.js";
 import connectDatabase from "./config/database.config.js";
+import { Env } from "./config/env.config.js";
+import { HTTPSTATUS } from "./config/http.config.js";
+import { asyncHandler } from "./middlewares/asyncHandler.middleware.js";
+import { errorHandler } from "./middlewares/errorHandler.middleware.js";
+import authRoutes from "./routes/auth.route.js";
 
 const app = express();
 const BASE_PATH = Env.BASE_PATH;
@@ -28,6 +28,8 @@ app.get(
     });
   })
 );
+
+app.use(`${BASE_PATH}/auth`, authRoutes);
 
 app.use(errorHandler);
 
