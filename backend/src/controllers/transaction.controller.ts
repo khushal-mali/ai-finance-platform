@@ -4,19 +4,23 @@ import { asyncHandler } from "../middlewares/asyncHandler.middleware.js";
 import type { TransactionTypeEnum } from "../models/transaction.model.js";
 import {
   bulkDeleteTransactionService,
+  bulkTransactionService,
   createTransactionService,
   deleteTransactionService,
   duplicateTransactionService,
   getAllTransactionService,
   getTransactionByIdService,
+  scanReceiptService,
   updateTransactionService,
 } from "../services/transaction.service.js";
 import {
   bulkDeleteTransactionIdSchema,
+  bulkTransactionSchema,
   transactionIdSchema,
   updateTransactionSchema,
 } from "../validators/transaction.validator.js";
 import { createTransactionSchema } from "../validators/transaction.validator.js";
+import { HttpStatusCode } from "axios";
 
 export const createTransactionController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -133,10 +137,24 @@ export const bulkDeleteTransactionController = asyncHandler(
 export const bulkTransactionController = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?._id;
+    const { transactions } = bulkTransactionSchema.parse(req.body);
+
+    const result = await bulkTransactionService(userId, transactions);
 
     return res.status(HTTPSTATUS.OK).json({
-      message: "Transactions deleted successfully.",
-      // ...result,
+      message: "Bulk transactions inserted successfully.",
+      ...result,
     });
   }
 );
+
+export const scanReceiptController = asyncHandler(async (req: Request, res: Response) => {
+  const file = req?.file;
+
+  const result = await scanReceiptService(file);
+
+  return res.status(HttpStatusCode.Ok).json({
+    message: "Receipt scanned successfully.",
+    data: result,
+  });
+});

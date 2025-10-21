@@ -1,17 +1,17 @@
-import "dotenv/config";
-import "./config/passport.config.js";
 import cors from "cors";
+import "dotenv/config";
 import express from "express";
+import passport from "passport";
 import connectDatabase from "./config/database.config.js";
 import { Env } from "./config/env.config.js";
 import { HTTPSTATUS } from "./config/http.config.js";
+import "./config/passport.config.js";
+import { passportAuthenticateJwt } from "./config/passport.config.js";
 import { asyncHandler } from "./middlewares/asyncHandler.middleware.js";
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 import authRoutes from "./routes/auth.route.js";
-import passport from "passport";
-import { passportAuthenticateJwt } from "./config/passport.config.js";
-import userRoutes from "./routes/user.route.js";
 import transactionRoutes from "./routes/transaction.route.js";
+import userRoutes from "./routes/user.route.js";
 
 const app = express();
 const BASE_PATH = Env.BASE_PATH;
