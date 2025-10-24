@@ -1,28 +1,26 @@
+import { createUserContent } from "@google/genai";
+import { format } from "date-fns";
 import mongoose from "mongoose";
+import { genAI, genAIModel } from "../config/google-ai.config.js";
 import ReportSettingModel from "../models/report-setting.model.js";
 import ReportModel from "../models/report.model.js";
 import TransactionModel, { TransactionTypeEnum } from "../models/transaction.model.js";
 import { NotFoundException } from "../utils/app-error.js";
-import { calculateNextReportDate } from "../utils/helper.js";
-import type { UpdateReportSettingType } from "../validators/report.validator.js";
 import { convertToDollerUnit } from "../utils/format-currency.js";
-import { format } from "date-fns";
-import { genAI, genAIModel } from "../config/google-ai.config.js";
-import { createUserContent } from "@google/genai";
+import { calculateNextReportDate } from "../utils/helper.js";
 import { reportInsightPrompt } from "../utils/prompt.js";
+import type { UpdateReportSettingType } from "../validators/report.validator.js";
 
 export const getAllReportsService = async (
   userId: string,
   pagination: {
-    pageNumber: number;
     pageSize: number;
+    pageNumber: number;
   }
 ) => {
-  const query: Record<string, any> = {
-    userId,
-  };
+  const query: Record<string, any> = { userId };
 
-  const { pageNumber, pageSize } = pagination;
+  const { pageSize, pageNumber } = pagination;
   const skip = (pageNumber - 1) * pageSize;
 
   const [reports, totalCount] = await Promise.all([
@@ -34,11 +32,17 @@ export const getAllReportsService = async (
 
   return {
     reports,
-    pagenation: { pageNumber, pageSize, totalCount, totalPages, skip },
+    pagination: {
+      pageSize,
+      pageNumber,
+      totalCount,
+      totalPages,
+      skip,
+    },
   };
 };
 
-export const updateReportsSettingService = async (
+export const updateReportSettingService = async (
   userId: string,
   body: UpdateReportSettingType
 ) => {
@@ -48,10 +52,10 @@ export const updateReportsSettingService = async (
   const existingReportSetting = await ReportSettingModel.findOne({
     userId,
   });
-
   if (!existingReportSetting) throw new NotFoundException("Report setting not found");
 
-  // const frequency = existingReportSetting.frequency || ReportFrequencyEnum.MONTHLY;
+  //   const frequency =
+  //     existingReportSetting.frequency || ReportFrequencyEnum.MONTHLY;
 
   if (isEnabled) {
     const currentNextReportDate = existingReportSetting.nextReportDate;
@@ -62,6 +66,8 @@ export const updateReportsSettingService = async (
       nextReportDate = currentNextReportDate;
     }
   }
+
+  console.log(nextReportDate, "nextReportDate");
 
   existingReportSetting.set({
     ...body,
@@ -113,22 +119,32 @@ export const generateReportService = async (
         ],
 
         categories: [
-          { $match: { type: TransactionTypeEnum.EXPENSE } },
+          {
+            $match: { type: TransactionTypeEnum.EXPENSE },
+          },
           {
             $group: {
               _id: "$category",
               total: { $sum: { $abs: "$amount" } },
             },
           },
-          { $sort: { total: -1 } },
-          { $limit: 5 },
+          {
+            $sort: { total: -1 },
+          },
+          {
+            $limit: 5,
+          },
         ],
       },
     },
     {
       $project: {
-        totalIncome: { $arrayElemAt: ["$summary.totalIncome", 0] },
-        totalExpenses: { $arrayElemAt: ["$summary.totalExpenses", 0] },
+        totalIncome: {
+          $arrayElemAt: ["$summary.totalIncome", 0],
+        },
+        totalExpenses: {
+          $arrayElemAt: ["$summary.totalExpenses", 0],
+        },
         categories: 1,
       },
     },
@@ -137,34 +153,33 @@ export const generateReportService = async (
   if (
     !results?.length ||
     (results[0]?.totalIncome === 0 && results[0]?.totalExpenses === 0)
-  ) {
+  )
     return null;
-  }
 
   const { totalIncome = 0, totalExpenses = 0, categories = [] } = results[0] || {};
+
+  console.log(results[0], "results");
 
   const byCategory = categories.reduce((acc: any, { _id, total }: any) => {
     acc[_id] = {
       amount: convertToDollerUnit(total),
-      percentage: totalExpenses > 0 ? Math.round(total / totalExpenses) * 100 : 0,
+      percentage: totalExpenses > 0 ? Math.round((total / totalExpenses) * 100) : 0,
     };
     return acc;
   }, {} as Record<string, { amount: number; percentage: number }>);
-  console.log(categories);
-  console.log(byCategory);
 
   const availableBalance = totalIncome - totalExpenses;
-  const savingsRate = calculateSavingsRate(totalIncome, totalExpenses);
+  const savingsRate = calculateSavingRate(totalIncome, totalExpenses);
 
   const periodLabel = `${format(fromDate, "MMMM d")} - ${format(toDate, "d, yyyy")}`;
 
-  const insights = generateInsightsAI({
+  const insights = await generateInsightsAI({
     totalIncome,
     totalExpenses,
     availableBalance,
     savingsRate,
     categories: byCategory,
-    periodLabel,
+    periodLabel: periodLabel,
   });
 
   return {
@@ -174,10 +189,10 @@ export const generateReportService = async (
       expenses: convertToDollerUnit(totalExpenses),
       balance: convertToDollerUnit(availableBalance),
       savingsRate: Number(savingsRate.toFixed(1)),
-      topCategories: Object.entries(categories)?.map(([name, cat]: any) => ({
+      topCategories: Object.entries(byCategory)?.map(([name, cat]: any) => ({
         name,
         amount: cat.amount,
-        percent: cat.percent,
+        percent: cat.percentage,
       })),
     },
     insights,
@@ -221,6 +236,7 @@ async function generateInsightsAI({
     const cleanedText = response?.replace(/```(?:json)?\n?/g, "").trim();
 
     if (!cleanedText) return [];
+
     const data = JSON.parse(cleanedText);
     return data;
   } catch (error) {
@@ -228,8 +244,8 @@ async function generateInsightsAI({
   }
 }
 
-function calculateSavingsRate(totalIncome: number, totalExpense: number) {
+function calculateSavingRate(totalIncome: number, totalExpenses: number) {
   if (totalIncome <= 0) return 0;
-  const savingsRate = ((totalIncome - totalExpense) / totalIncome) * 100;
-  return parseFloat(savingsRate.toFixed(2));
+  const savingRate = ((totalIncome - totalExpenses) / totalIncome) * 100;
+  return parseFloat(savingRate.toFixed(2));
 }

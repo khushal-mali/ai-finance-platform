@@ -4,7 +4,7 @@ import { asyncHandler } from "../middlewares/asyncHandler.middleware.js";
 import {
   generateReportService,
   getAllReportsService,
-  updateReportsSettingService,
+  updateReportSettingService,
 } from "../services/report.service.js";
 import { updateReportSettingSchema } from "../validators/report.validator.js";
 
@@ -31,7 +31,7 @@ export const updateReportsSettingController = asyncHandler(
     const userId = req?.user?._id;
     const body = updateReportSettingSchema.parse(req.body);
 
-    await updateReportsSettingService(userId, body);
+    await updateReportSettingService(userId, body);
 
     return res.status(HttpStatusCode.Ok).json({
       message: "Reports setting updated successfully",
