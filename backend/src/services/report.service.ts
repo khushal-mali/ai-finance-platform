@@ -48,10 +48,13 @@ export const updateReportSettingService = async (
 ) => {
   const { isEnabled } = body;
   let nextReportDate: Date | null = null;
+  console.log(nextReportDate, "nextReportDate");
+  console.log(userId, "userId");
 
   const existingReportSetting = await ReportSettingModel.findOne({
     userId,
   });
+
   if (!existingReportSetting) throw new NotFoundException("Report setting not found");
 
   //   const frequency =
@@ -60,6 +63,7 @@ export const updateReportSettingService = async (
   if (isEnabled) {
     const currentNextReportDate = existingReportSetting.nextReportDate;
     const now = new Date();
+
     if (!currentNextReportDate || currentNextReportDate <= now) {
       nextReportDate = calculateNextReportDate(existingReportSetting.lastSentDate);
     } else {
