@@ -18,6 +18,7 @@ const userSchema = new Schema<UserDocument>(
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, unique: true, lowercase: true },
     password: { type: String, required: true, select: true },
+    profilePicture: { type: String, default: null },
   },
   {
     timestamps: true,
