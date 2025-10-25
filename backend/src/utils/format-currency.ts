@@ -4,7 +4,7 @@ export function convertToCents(amount: number) {
 }
 
 // Convert cents to dollers when retrieving
-export function convertToDollerUnit(amount: number) {
+export function convertToDollarUnit(amount: number) {
   return amount / 100;
 }
 

@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
+import { HTTPSTATUS } from "../config/http.config.js";
 import { asyncHandler } from "../middlewares/asyncHandler.middleware.js";
 import { findByIdUserService, updateUserService } from "../services/user.service.js";
-import { HTTPSTATUS } from "../config/http.config.js";
 import { updateUserSchema } from "../validators/user.validator.js";
 
 export const getCurrentUserController = asyncHandler(

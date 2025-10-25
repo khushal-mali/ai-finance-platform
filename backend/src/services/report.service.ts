@@ -6,7 +6,7 @@ import ReportSettingModel from "../models/report-setting.model.js";
 import ReportModel from "../models/report.model.js";
 import TransactionModel, { TransactionTypeEnum } from "../models/transaction.model.js";
 import { NotFoundException } from "../utils/app-error.js";
-import { convertToDollerUnit } from "../utils/format-currency.js";
+import { convertToDollarUnit } from "../utils/format-currency.js";
 import { calculateNextReportDate } from "../utils/helper.js";
 import { reportInsightPrompt } from "../utils/prompt.js";
 import type { UpdateReportSettingType } from "../validators/report.validator.js";
@@ -166,7 +166,7 @@ export const generateReportService = async (
 
   const byCategory = categories.reduce((acc: any, { _id, total }: any) => {
     acc[_id] = {
-      amount: convertToDollerUnit(total),
+      amount: convertToDollarUnit(total),
       percentage: totalExpenses > 0 ? Math.round((total / totalExpenses) * 100) : 0,
     };
     return acc;
@@ -189,9 +189,9 @@ export const generateReportService = async (
   return {
     period: periodLabel,
     summary: {
-      income: convertToDollerUnit(totalIncome),
-      expenses: convertToDollerUnit(totalExpenses),
-      balance: convertToDollerUnit(availableBalance),
+      income: convertToDollarUnit(totalIncome),
+      expenses: convertToDollarUnit(totalExpenses),
+      balance: convertToDollarUnit(availableBalance),
       savingsRate: Number(savingsRate.toFixed(1)),
       topCategories: Object.entries(byCategory)?.map(([name, cat]: any) => ({
         name,
@@ -220,9 +220,9 @@ async function generateInsightsAI({
 }) {
   try {
     const prompt = reportInsightPrompt({
-      totalIncome: convertToDollerUnit(totalIncome),
-      totalExpenses: convertToDollerUnit(totalExpenses),
-      availableBalance: convertToDollerUnit(availableBalance),
+      totalIncome: convertToDollarUnit(totalIncome),
+      totalExpenses: convertToDollarUnit(totalExpenses),
+      availableBalance: convertToDollarUnit(availableBalance),
       savingsRate: Number(savingsRate.toFixed(1)),
       categories,
       periodLabel,
